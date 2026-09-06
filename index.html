@@ -1,0 +1,574 @@
+<title>Brzdy CPC</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#F7F6F3;
+    --surface:#FFFFFF;
+    --ink:#1C1F26;
+    --ink-2:#4B505A;
+    --ink-muted:#7D818A;
+    --border:#E4E0D9;
+    --c-count:#E8542A;
+    --c-cost:#8A8F99;
+    --c-upn:#2F8F5B;
+    --c-upczk:#2B7FB0;
+    --grid:#E9E6E0;
+    --warn-bg:#FCEEE9;
+    --warn-ink:#9A3412;
+    --shadow: 0 1px 2px rgba(28,31,38,0.04), 0 6px 20px rgba(28,31,38,0.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#14161B;
+      --surface:#1D2027;
+      --ink:#F1F1EF;
+      --ink-2:#C7C9CE;
+      --ink-muted:#8B8F98;
+      --border:#2E323B;
+      --c-count:#F0703F;
+      --c-cost:#9BA1AC;
+      --c-upn:#4CAE7F;
+      --c-upczk:#5AA6DA;
+      --grid:#2A2E37;
+      --warn-bg:#2E2118;
+      --warn-ink:#F3B896;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#14161B;
+    --surface:#1D2027;
+    --ink:#F1F1EF;
+    --ink-2:#C7C9CE;
+    --ink-muted:#8B8F98;
+    --border:#2E323B;
+    --c-count:#F0703F;
+    --c-cost:#9BA1AC;
+    --c-upn:#4CAE7F;
+    --c-upczk:#5AA6DA;
+    --grid:#2A2E37;
+    --warn-bg:#2E2118;
+    --warn-ink:#F3B896;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 28px rgba(0,0,0,0.35);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2{
+    font-family:"Oswald", "Arial Narrow", sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+    margin:0;
+  }
+  .mono{ font-family:"IBM Plex Mono", monospace; font-variant-numeric:tabular-nums; }
+
+  header{
+    max-width:1180px;
+    margin:0 auto;
+    padding:1.8rem 1.75rem 0.4rem;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:0.6rem;
+  }
+  header h1{ font-size:1.3rem; font-weight:600; color:var(--ink); }
+  header .meta{
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.78rem;
+    color:var(--ink-muted);
+  }
+
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:1rem 1.75rem 3rem;
+    display:flex;
+    flex-direction:column;
+    gap:1.4rem;
+  }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:1.2rem 1.4rem 1rem;
+    box-shadow:var(--shadow);
+  }
+  .panel h2{ font-size:1rem; font-weight:600; margin-bottom:0.9rem; color:var(--ink); }
+
+  .intro{ font-size:0.86rem; color:var(--ink-2); line-height:1.6; }
+  .intro strong{ color:var(--ink); }
+  .intro p{ margin:0 0 0.7rem; }
+  .intro p:last-child{ margin-bottom:0; }
+
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:1.1rem;
+    margin-bottom:0.9rem;
+    font-size:0.8rem;
+    color:var(--ink-2);
+  }
+  .legend .item{ display:flex; align-items:center; gap:0.4rem; }
+  .legend .sw{ width:10px; height:10px; border-radius:2px; flex:none; }
+  .sw.count{ background:var(--c-count); }
+  .sw.cost{ background:var(--c-cost); }
+  .sw.upn{ background:var(--c-upn); }
+  .sw.upczk{ background:var(--c-upczk); }
+
+  .chart-scroll{ overflow-x:auto; }
+  .chart-scroll svg{ display:block; overflow:visible; }
+
+  .bar.count{ fill:var(--c-count); }
+  .bar.count:hover{ opacity:0.82; }
+  .bar.cost{ fill:var(--c-cost); }
+  .bar.cost:hover{ opacity:0.82; }
+  .bar.upn{ fill:var(--c-upn); }
+  .bar.upn:hover{ opacity:0.82; }
+  .bar.upczk{ fill:var(--c-upczk); }
+  .bar.upczk:hover{ opacity:0.82; }
+
+  .axis-line{ stroke:var(--grid); stroke-width:1; }
+  .tick-label{ fill:var(--ink-muted); font-family:"IBM Plex Mono", monospace; font-size:10px; }
+  .tick-label.month{ font-size:10.5px; }
+  .axis-title{ fill:var(--ink-muted); font-family:"IBM Plex Mono", monospace; font-size:9.5px; letter-spacing:0.04em; }
+  .val-label{ font-family:"IBM Plex Mono", monospace; font-size:8.6px; font-weight:600; text-anchor:middle; }
+  .val-label.count{ fill:var(--c-count); }
+  .val-label.upn{ fill:var(--c-upn); }
+  .val-label.cost{ fill:var(--c-cost); }
+  .val-label.upczk{ fill:var(--c-upczk); }
+  .top-label{ font-family:"IBM Plex Mono", monospace; font-size:9.5px; font-weight:700; }
+  .top-label.profit{ fill:var(--c-upn); }
+  .top-label.loss{ fill:var(--warn-ink); }
+
+  .tooltip{
+    position:fixed;
+    pointer-events:none;
+    background:var(--ink);
+    color:var(--bg);
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.74rem;
+    padding:0.5rem 0.65rem;
+    border-radius:6px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.25);
+    opacity:0;
+    transform:translate(-50%, calc(-100% - 10px));
+    transition:opacity 0.08s ease;
+    white-space:nowrap;
+    z-index:20;
+    line-height:1.5;
+  }
+  .tooltip.show{ opacity:1; }
+  .tooltip .t-title{ font-weight:600; color:var(--c-count); margin-bottom:0.15rem; }
+
+  /* --- summary stats --- */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:0.9rem;
+  }
+  .stat{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:0.85rem 0.9rem;
+    display:flex;
+    flex-direction:column;
+    gap:0.3rem;
+  }
+  .stat .label{ font-size:0.72rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--ink-muted); font-family:"IBM Plex Mono", monospace; }
+  .stat .value{ font-family:"IBM Plex Mono", monospace; font-size:1.25rem; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .stat.count .value{ color:var(--c-count); }
+  .stat.upn .value{ color:var(--c-upn); }
+  .stat.cost .value{ color:var(--c-cost); }
+  .stat.upczk .value{ color:var(--c-upczk); }
+  .stat.diff .value{ color:var(--warn-ink); }
+  @media (max-width:900px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+
+  /* --- coverage / callout --- */
+  .coverage{
+    display:flex;
+    align-items:flex-start;
+    gap:0.9rem;
+    background:var(--warn-bg);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:1rem 1.2rem;
+  }
+  .coverage .num{
+    font-family:"Oswald", sans-serif;
+    font-size:1.9rem;
+    font-weight:600;
+    color:var(--warn-ink);
+    line-height:1;
+    flex:none;
+  }
+  .coverage .txt{ font-size:0.86rem; color:var(--ink-2); line-height:1.55; }
+  .coverage .txt strong{ color:var(--ink); }
+
+  /* --- table --- */
+  table.upsale{
+    width:100%;
+    border-collapse:collapse;
+    font-size:0.84rem;
+  }
+  table.upsale th{
+    text-align:left;
+    font-family:"IBM Plex Mono", monospace;
+    font-size:0.72rem;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--ink-muted);
+    padding:0.3rem 0.6rem 0.5rem;
+    border-bottom:1px solid var(--border);
+  }
+  table.upsale td{
+    padding:0.5rem 0.6rem;
+    border-bottom:1px solid var(--border);
+    color:var(--ink-2);
+  }
+  table.upsale tr:last-child td{ border-bottom:none; }
+  table.upsale td.num{ font-family:"IBM Plex Mono", monospace; color:var(--ink); text-align:right; font-variant-numeric:tabular-nums; }
+  table.upsale td.order{ font-family:"IBM Plex Mono", monospace; color:var(--ink); }
+  table.upsale td.order a{ color:var(--c-upczk); text-decoration:none; }
+  table.upsale td.order a:hover{ text-decoration:underline; }
+  table.upsale tfoot td{ font-weight:600; color:var(--ink); border-top:2px solid var(--border); border-bottom:none; padding-top:0.6rem; }
+  .table-note{ font-size:0.76rem; color:var(--ink-muted); margin-top:0.7rem; line-height:1.5; }
+
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<header>
+  <h1>Brzdy — interní reklamace (CPC)</h1>
+  <span class="meta">10/2025 – 9/2026 · aktualizováno 6. 9. 2026</span>
+</header>
+
+<main>
+
+  <div class="panel">
+    <div class="intro">
+      <p><strong>Co je v tomto přehledu.</strong> Jde výhradně o <strong>interní reklamace</strong>, u kterých se řeší
+      <strong>výměna brzdových kotoučů a/nebo destiček</strong> (přední, zadní, nebo obojí). Ostatní typy brzdových
+      reklamací (parkovací brzda, ABS, brzdový okruh/trubky apod.) jsou z přehledu záměrně vyloučeny — u těchto oprav
+      typicky nevzniká potenciál k prodeji upsale zákazníkovi.</p>
+      <p><strong>Proč od 10/2025.</strong> Od tohoto data běží automatizace, která na objednávku zakládá task
+      s předmětem "UPSALE" — upozornění, že se jedná o brzdovou reklamaci s příležitostí prodat zákazníkovi upsale.
+      Data před tímto datem tuto automatizaci ještě neměla, a proto do přehledu nejsou zahrnuta.</p>
+      <p><strong>Co znamená "upsale".</strong> Pokud reklamace skončí jako upsale (zákazník si opravu koupil a byla mu
+      vyfakturována), má finální servisní job "Repair" náklad <strong>Effective Price without VAT = 0,-</strong> s poznámkou
+      <strong>"Paid by Third Party"</strong> — opravu totiž hradil zákazník, ne Carvago, takže interní náklad tuto
+      skutečnost musí odrážet.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Počet reklamací a počet upsale (podle měsíce vzniku reklamace)</h2>
+    <div class="legend">
+      <span class="item"><span class="sw count"></span>Reklamací na výměnu kotoučů/destiček (ks)</span>
+      <span class="item"><span class="sw upn"></span>Z toho prodáno / fakturováno jako upsale (ks)</span>
+    </div>
+    <div class="chart-scroll"><svg id="chart-counts"></svg></div>
+  </div>
+
+  <div class="panel">
+    <h2>Náklad na opravy a vybrané peníze za upsale (Kč bez DPH)</h2>
+    <div class="legend">
+      <span class="item"><span class="sw cost"></span>Náklad na opravu (Kč bez DPH)</span>
+      <span class="item"><span class="sw upczk"></span>Vybráno od zákazníka za upsale (Kč bez DPH)</span>
+    </div>
+    <div class="chart-scroll"><svg id="chart-money"></svg></div>
+  </div>
+
+  <div class="panel">
+    <h2>Souhrn za celé období (10/2025 – 9/2026)</h2>
+    <div class="stats">
+      <div class="stat count"><span class="label">Reklamací celkem</span><span class="value" id="stat-count"></span></div>
+      <div class="stat upn"><span class="label">Z toho upsale</span><span class="value" id="stat-upn"></span></div>
+      <div class="stat cost"><span class="label">Náklad na opravy celkem</span><span class="value" id="stat-cost"></span></div>
+      <div class="stat upczk"><span class="label">Vybráno od zákazníků celkem</span><span class="value" id="stat-upczk"></span></div>
+      <div class="stat diff"><span class="label">Rozdíl — zaplatilo Carvago</span><span class="value" id="stat-diff"></span></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Seznam všech UPSALE — skutečně prodáno a fakturováno zákazníkovi (38×)</h2>
+    <table class="upsale" id="upsale-table"></table>
+    <div class="table-note">Všech 38 má na servisním jobu "Repair" Effective Price without VAT = 0,- a Zero Price Reason = "Paid by Third Party".</div>
+  </div>
+
+  <div class="panel">
+    <h2>Reklamace bez informativního tasku "UPSALE" pro Sales (11×)</h2>
+    <table class="upsale" id="gap-table"></table>
+    <div class="table-note">U žádné z těchto reklamací task upozorňující Sales na příležitost prodat upsale nevznikl — proto zde chybí sloupec s taskem.</div>
+  </div>
+
+  <div class="coverage">
+    <div class="txt">
+      <strong>Otevřená otázka k fakturaci.</strong> Není ověřeno, zda oddělení Sales při prodeji upsale skutečně chápe,
+      že náklad, který dostává k dispozici, je uveden <strong>bez DPH</strong>, a zda podle toho zákazníkovi fakturuje
+      správně. Je dost pravděpodobné, že v tomto může být nepořádek (např. že se s částkou bez DPH pracuje, jako by
+      šlo o částku s DPH, nebo naopak) — stojí za to si to s týmem Sales projít a ověřit na několika konkrétních
+      fakturách.
+    </div>
+  </div>
+
+</main>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const months = ["2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"];
+  const monthLabels = ["10/25","11/25","12/25","01/26","02/26","03/26","04/26","05/26","06/26","07/26","08/26","09/26"];
+  const counts   = [10,7,2,9,5,11,3,10,7,15,11,2];
+  const costs    = [46400.02,47172.38,17720.12,62236.29,25808.19,47957.18,19266.24,50589.85,43816.77,90244.05,63993.08,8516.12];
+  const upsaleN  = [7,2,1,1,3,5,0,3,1,9,5,1];
+  const upsaleCz = [56711.6,12488.0,8857.0,3484.0,34230.88,43415.84,0.0,16401.0,3407.0,62783.0,39646.36,5800.0];
+
+  const SF_DOMAIN = "carvago.lightning.force.com";
+  const orderUrl     = (orderId)     => `https://${SF_DOMAIN}/lightning/r/Order/${orderId}/view`;
+  const complaintUrl = (complaintId) => `https://${SF_DOMAIN}/lightning/r/Complaint__c/${complaintId}/view`;
+  const taskUrl       = (taskId)      => `https://${SF_DOMAIN}/lightning/r/Task/${taskId}/view`;
+
+  // All 38 confirmed UPSALE — actually sold and invoiced to the customer.
+  const upsaleRows = [
+    { date:"2025-10-01", complaint:"C-001491", complaintId:"a0BMI00000Sw5FJ2AZ", order:"583778", orderId:"801MI00000lM9pbYAC", taskId:"00TMI000011tQ0y2AE", amount:7125.0 },
+    { date:"2025-10-02", complaint:"C-001485", complaintId:"a0BMI00000Sw2ZD2AZ", order:"582912", orderId:"801MI00000lJCs3YAG", taskId:"00TMI00001201UC2AY", amount:6606.6 },
+    { date:"2025-10-27", complaint:"C-001642", complaintId:"a0BMI00000UCQ0g2AH", order:"591093", orderId:"801MI00000mgzt6YAA", taskId:"00TMI000014FkCy2AK", amount:5665.0 },
+    { date:"2025-10-27", complaint:"C-001643", complaintId:"a0BMI00000UCZiH2AX", order:"589714", orderId:"801MI00000mLp3yYAC", taskId:"00TMI000014G0e52AC", amount:5953.0 },
+    { date:"2025-10-29", complaint:"C-001678", complaintId:"a0BMI00000UTAvZ2AX", order:"590365", orderId:"801MI00000mTNvGYAW", taskId:"00TMI000014agJ12AI", amount:5082.0 },
+    { date:"2025-11-03", complaint:"C-001680", complaintId:"a0BMI00000UTAyn2AH", order:"592478", orderId:"801MI00000mvfkOYAQ", taskId:"00TMI0000151fnd2AA", amount:13358.0 },
+    { date:"2025-11-03", complaint:"C-001693", complaintId:"a0BMI00000UbSth2AF", order:"591071", orderId:"801MI00000mgCfTYAU", taskId:"00TMI0000152NOX2A2", amount:12922.0 },
+    { date:"2025-11-19", complaint:"C-001795", complaintId:"a0BMI00000VEGe92AH", order:"595649", orderId:"801MI00000nYCyoYAG", taskId:"00TMI000016f6aE2AQ", amount:6388.0 },
+    { date:"2025-11-24", complaint:"C-001842", complaintId:"a0BMI00000VbwG52AJ", order:"596640", orderId:"801MI00000nq3FOYAY", taskId:"00TMI0000176svq2AA", amount:6100.0 },
+    { date:"2025-12-10", complaint:"C-002020", complaintId:"a0BMI00000W97ZK2AZ", order:"604786", orderId:"801MI00000paxYrYAI", taskId:"00TMI000018DzDk2AK", amount:8857.0 },
+    { date:"2026-01-05", complaint:"C-002184", complaintId:"a0BMI00000Wnueb2AB", order:"609976", orderId:"801MI00000qWUrSYAW", taskId:"00TMI000019qfXp2AI", amount:3484.0 },
+    { date:"2026-02-04", complaint:"C-002429", complaintId:"a0BMI00000XgTQo2AN", order:"619505", orderId:"801MI00000s3cGCYAY", taskId:"00TMI00001Bp5jh2AB", amount:12777.0 },
+    { date:"2026-02-23", complaint:"C-002560", complaintId:"a0BMI00000Y3bST2AZ", order:"626849", orderId:"801MI00000tBCO3YAO", taskId:"00TMI00001Czz4S2AR", amount:12254.88 },
+    { date:"2026-02-25", complaint:"C-002591", complaintId:"a0BMI00000Y9wvd2AB", order:"627030", orderId:"801MI00000tE3HiYAK", taskId:"00TMI00001D99qV2AR", amount:9199.0 },
+    { date:"2026-03-10", complaint:"C-002674", complaintId:"a0BMI00000YOiFh2AL", order:"629977", orderId:"801MI00000tY7iYYAS", taskId:"00TMI00001DnRVj2AN", amount:4167.0 },
+    { date:"2026-03-10", complaint:"C-002675", complaintId:"a0BMI00000YOilt2AD", order:"629687", orderId:"801MI00000tV5RzYAK", taskId:"00TMI00001DmEcE2AV", amount:6568.84 },
+    { date:"2026-03-18", complaint:"C-002768", complaintId:"a0BMI00000YVShB2AX", order:"632884", orderId:"801MI00000tzB0XYAU", taskId:"00TMI00001EK1PF2A1", amount:12000.0 },
+    { date:"2026-03-20", complaint:"C-002781", complaintId:"a0BMI00000YWIUT2A5", order:"633896", orderId:"801MI00000uAZvaYAG", taskId:"00TMI00001ETj6D2AT", amount:5680.0 },
+    { date:"2026-03-26", complaint:"C-002823", complaintId:"a0BMI00000Ycrsa2AB", order:"633362", orderId:"801MI00000u4VoEYAU", taskId:"00TMI00001EoKHj2AN", amount:15000.0 },
+    { date:"2026-05-07", complaint:"C-003227", complaintId:"a0BMI00000aaiby2AA", order:"645075", orderId:"801MI00000w59AxYAI", taskId:"00TMI00001HHPhg2AH", amount:5259.0 },
+    { date:"2026-05-11", complaint:"C-003223", complaintId:"a0BMI00000abKPd2AM", order:"646142", orderId:"801MI00000wFhmPYAS", taskId:"00TMI00001HUIAA2A5", amount:6842.0 },
+    { date:"2026-05-22", complaint:"C-003318", complaintId:"a0BMI00000b9gR02AI", order:"650821", orderId:"801MI00000wqcb6YAA", taskId:"00TMI00001IHCrt2AH", amount:4300.0 },
+    { date:"2026-06-29", complaint:"C-003623", complaintId:"a0BMI00000d3zLS2AY", order:"659390", orderId:"801MI00000y9lA1YAI", taskId:"00TMI00001KqeQj2AJ", amount:3407.0 },
+    { date:"2026-07-02", complaint:"C-003671", complaintId:"a0BMI00000dSuIX2A0", order:"663865", orderId:"801MI00000yr6j4YAA", taskId:"00TMI00001L6whS2AR", amount:10184.0 },
+    { date:"2026-07-10", complaint:"C-003724", complaintId:"a0BMI00000dx9aN2AQ", order:"664735", orderId:"801MI00000yxqPtYAI", taskId:"00TMI00001LfBhi2AF", amount:4123.0 },
+    { date:"2026-07-20", complaint:"C-003808", complaintId:"a0BMI00000eUEUm2AO", order:"664996", orderId:"801MI00000zMTJaYAO", taskId:"00TMI00001MM81u2AD", amount:5215.0 },
+    { date:"2026-07-21", complaint:"C-003846", complaintId:"a0BMI00000eoafZ2AQ", order:"662775", orderId:"801MI00000yd19vYAA", taskId:"00TMI00001MXIAz2AP", amount:9000.0 },
+    { date:"2026-07-23", complaint:"C-003800", complaintId:"a0BMI00000eU9DN2A0", order:"664719", orderId:"801MI00000yx77yYAA", taskId:"00TMI00001MqzfM2AR", amount:13680.0 },
+    { date:"2026-07-28", complaint:"C-003895", complaintId:"a0BMI00000f9Cqk2AE", order:"669370", orderId:"801MI0000100SVHYA2", taskId:"00TMI00001NDosT2AT", amount:3416.0 },
+    { date:"2026-07-29", complaint:"C-003883", complaintId:"a0BMI00000ezK9k2AE", order:"666242", orderId:"801MI00000zIsYIYA0", taskId:"00TMI00001NJrFo2AL", amount:4536.0 },
+    { date:"2026-08-03", complaint:"C-003952", complaintId:"a0BMI00000fRpIJ2A0", order:"668154", orderId:"801MI00000zhthHYAQ", taskId:"00TMI00001NavIF2AZ", amount:9929.0 },
+    { date:"2026-08-03", complaint:"C-003961", complaintId:"a0BMI00000fSKiY2AW", order:"670840", orderId:"801MI000010Lud3YAC", taskId:"00TMI00001NbEZV2A3", amount:2700.0 },
+    { date:"2026-08-13", complaint:"C-004071", complaintId:"a0BMI00000g4G1B2AU", order:"672380", orderId:"801MI000010nBhCYAU", taskId:"00TMI00001OD7Qf2AL", amount:5800.0 },
+    { date:"2026-08-20", complaint:"C-004161", complaintId:"a0BMI00000gXMHj2AO", order:"672936", orderId:"801MI000010xTdQYAU", taskId:"00TMI00001OfYNi2AN", amount:6795.36 },
+    { date:"2026-08-25", complaint:"C-004172", complaintId:"a0BMI00000gjYJz2AM", order:"672605", orderId:"801MI000010rhrCYAQ", taskId:"00TMI00001Oyada2AB", amount:12500.0 },
+    { date:"2026-08-27", complaint:"C-004213", complaintId:"a0BMI00000gwmVV2AY", order:"675837", orderId:"801MI000011l87eYAA", taskId:"00TMI00001P7rwq2AB", amount:4870.0 },
+    { date:"2026-09-02", complaint:"C-004249", complaintId:"a0BMI00000h9xZh2AI", order:"674081", orderId:"801MI000011HOPwYAO", taskId:"00TMI00001Paa1H2AR", amount:9681.0 },
+    { date:"2026-09-02", complaint:"C-004282", complaintId:"a0BMI00000hJNWR2A4", order:"675441", orderId:"801MI000011d8eFYAQ", taskId:"00TMI00001PaJOx2AN", amount:5800.0 },
+  ];
+
+  // 11 complaints where NO "UPSALE" notification task for Sales was ever created
+  // (checked across any owner/queue on the order) — genuine process gap, since
+  // C-001491 predates its own manual after-the-fact correction and the rest simply
+  // never got the task at all.
+  const gapRows = [
+    { date:"2025-10-01", complaint:"C-001491", complaintId:"a0BMI00000Sw5FJ2AZ", order:"583778", orderId:"801MI00000lM9pbYAC" },
+    { date:"2026-03-27", complaint:"C-002852", complaintId:"a0BMI00000YjUCs2AN", order:"633927", orderId:"801MI00000uB5NVYA0" },
+    { date:"2026-03-30", complaint:"C-002875", complaintId:"a0BMI00000YqJix2AF", order:"634685", orderId:"801MI00000uJI9FYAW" },
+    { date:"2026-05-04", complaint:"C-003167", complaintId:"a0BMI00000aFDre2AG", order:"641519", orderId:"801MI00000vTmI9YAK" },
+    { date:"2026-05-11", complaint:"C-003228", complaintId:"a0BMI00000ab2qz2AA", order:"644257", orderId:"801MI00000vz6dyYAA" },
+    { date:"2026-05-28", complaint:"C-003369", complaintId:"a0BMI00000bTpeg2AC", order:"643324", orderId:"801MI00000vo5zpYAA" },
+    { date:"2026-06-08", complaint:"C-003445", complaintId:"a0BMI00000c0yXp2AI", order:"656406", orderId:"801MI00000xXg1hYAC" },
+    { date:"2026-06-22", complaint:"C-003584", complaintId:"a0BMI00000cqyn22AA", order:"660609", orderId:"801MI00000yHFzSYAW" },
+    { date:"2026-07-07", complaint:"C-003709", complaintId:"a0BMI00000drsyH2AQ", order:"662146", orderId:"801MI00000yVBMXYA4" },
+    { date:"2026-08-13", complaint:"C-004083", complaintId:"a0BMI00000g7jhn2AA", order:"673172", orderId:"801MI0000112dAfYAI" },
+    { date:"2026-08-19", complaint:"C-004129", complaintId:"a0BMI00000gSXYj2AO", order:"672896", orderId:"801MI000010wtLdYAI" },
+  ];
+
+  const fmtK = n => Math.round(n).toLocaleString("cs-CZ") + " Kč";
+  const fmtN = n => Math.round(n).toLocaleString("cs-CZ");
+
+  const tip = document.getElementById("tooltip");
+  function showTip(evt, title, lines){
+    tip.innerHTML = `<div class="t-title">${title}</div>` + lines.map(l=>`<div>${l}</div>`).join("");
+    tip.classList.add("show");
+    moveTip(evt);
+  }
+  function moveTip(evt){
+    tip.style.left = evt.clientX + "px";
+    tip.style.top = evt.clientY + "px";
+  }
+  function hideTip(){ tip.classList.remove("show"); }
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  function el(tag, attrs){
+    const e = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  // ---------------------------------------------------------------
+  // Generic 2-series grouped bar chart, single axis, with on-bar
+  // value labels (always visible, not only on hover).
+  // ---------------------------------------------------------------
+  function renderTwoBarChart(svgId, seriesA, seriesB, opts){
+    const svg = document.getElementById(svgId);
+    const n = months.length;
+    const groupSlot = opts.groupSlot;
+    const W = Math.max(n * groupSlot + 80, 700);
+    const H = 300;
+    const padL = opts.padL, padR = 20, padT = 26, padB = 32;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    const maxV = Math.max(...seriesA.vals, ...seriesB.vals) * (opts.headroom || 1.22) || 1;
+
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("width", W);
+    svg.setAttribute("height", H);
+    svg.innerHTML = "";
+
+    const steps = 5;
+    for (let i=0;i<=steps;i++){
+      const y = padT + plotH - (plotH * i/steps);
+      svg.appendChild(el("line", { x1:padL, x2:W-padR, y1:y, y2:y, class:"axis-line" }));
+      const rv = maxV * i/steps;
+      svg.appendChild(el("text", { x:padL-8, y:y+3, class:"tick-label", "text-anchor":"end" })).textContent =
+        opts.axisFmt === "k" ? (rv>=1000 ? Math.round(rv/1000)+"k" : Math.round(rv)) : Math.round(rv);
+    }
+    svg.appendChild(el("text", { x:padL-8, y:padT-10, class:"axis-title", "text-anchor":"end" })).textContent = opts.axisTitle;
+
+    const groupW = plotW / n;
+    const barW = opts.barW;
+    const gap = opts.gap;
+    const series = [seriesA, seriesB];
+    const totalBarsW = series.length * barW + gap;
+
+    for (let i=0;i<n;i++){
+      const groupX = padL + groupW*i + (groupW - totalBarsW)/2;
+      let topY = padT + plotH;
+      series.forEach((s, si) => {
+        const v = s.vals[i];
+        const bh = maxV > 0 ? (v/maxV) * plotH : 0;
+        const x = groupX + si*(barW+gap);
+        const y = padT + plotH - bh;
+        topY = Math.min(topY, y);
+        const rect = el("rect", { x, y, width:barW, height:Math.max(bh, v>0?1:0), rx:2, class:"bar "+s.cls });
+        const lines = [
+          `${seriesA.label}: ${opts.fmt(seriesA.vals[i])}`,
+          `${seriesB.label}: ${opts.fmt(seriesB.vals[i])}`,
+        ];
+        rect.addEventListener("mousemove", (e)=> moveTip(e));
+        rect.addEventListener("mouseenter", (e)=> showTip(e, monthLabels[i], lines));
+        rect.addEventListener("mouseleave", hideTip);
+        svg.appendChild(rect);
+
+        if (v > 0){
+          const label = el("text", { x:x+barW/2, y:y-4, class:"val-label "+s.cls });
+          label.textContent = opts.fmt(v, true);
+          svg.appendChild(label);
+        }
+      });
+      if (opts.topLabel){
+        const tl = opts.topLabel.compute(i);
+        const label = el("text", { x:groupX+totalBarsW/2, y:topY-15, class:"top-label "+tl.cls, "text-anchor":"middle" });
+        label.textContent = tl.text;
+        svg.appendChild(label);
+      }
+      svg.appendChild(el("text", { x:groupX+totalBarsW/2, y:H-10, class:"tick-label month", "text-anchor":"middle" })).textContent = monthLabels[i];
+    }
+  }
+
+  renderTwoBarChart("chart-counts",
+    { vals:counts,  cls:"count", label:"Reklamací" },
+    { vals:upsaleN, cls:"upn",   label:"Upsale ks" },
+    { groupSlot:78, padL:34, barW:18, gap:5, axisTitle:"ks", axisFmt:"n",
+      fmt:(v)=> fmtN(v) }
+  );
+
+  renderTwoBarChart("chart-money",
+    { vals:costs,    cls:"cost",  label:"Náklad" },
+    { vals:upsaleCz, cls:"upczk", label:"Upsale Kč" },
+    { groupSlot:150, padL:46, barW:38, gap:7, axisTitle:"Kč", axisFmt:"k", headroom:1.4,
+      fmt:(v)=> fmtN(v),
+      topLabel:{ compute:(i)=>{
+        const d = upsaleCz[i] - costs[i];
+        return { cls: d>=0 ? "profit" : "loss", text: (d>=0?"+":"−") + fmtN(Math.abs(d)) + " Kč" };
+      }}
+    }
+  );
+
+  // ---------------------------------------------------------------
+  // SUMMARY STATS — whole period
+  // ---------------------------------------------------------------
+  (function(){
+    const totalCount = counts.reduce((a,b)=>a+b,0);
+    const totalUpn   = upsaleN.reduce((a,b)=>a+b,0);
+    const totalCost  = costs.reduce((a,b)=>a+b,0);
+    const totalUpCz  = upsaleCz.reduce((a,b)=>a+b,0);
+    const diff       = totalCost - totalUpCz;
+    document.getElementById("stat-count").textContent = fmtN(totalCount) + "×";
+    document.getElementById("stat-upn").textContent   = fmtN(totalUpn) + "×";
+    document.getElementById("stat-cost").textContent  = fmtK(totalCost);
+    document.getElementById("stat-upczk").textContent = fmtK(totalUpCz);
+    document.getElementById("stat-diff").textContent  = fmtK(diff);
+  })();
+
+  // ---------------------------------------------------------------
+  // TABLE — all 38 confirmed, invoiced upsale matches
+  // ---------------------------------------------------------------
+  (function(){
+    const t = document.getElementById("upsale-table");
+    const rowsHtml = upsaleRows.map(r => `
+      <tr>
+        <td class="mono">${r.date}</td>
+        <td class="order"><a href="${complaintUrl(r.complaintId)}" target="_blank" rel="noopener">${r.complaint}</a></td>
+        <td class="order"><a href="${orderUrl(r.orderId)}" target="_blank" rel="noopener">${r.order}</a></td>
+        <td class="order"><a href="${taskUrl(r.taskId)}" target="_blank" rel="noopener">task ↗</a></td>
+        <td class="num">${fmtK(r.amount)}</td>
+      </tr>`).join("");
+    const total = upsaleRows.reduce((a,r)=>a+r.amount,0);
+    t.innerHTML = `
+      <thead><tr><th>Datum reklamace</th><th>Reklamace</th><th>Objednávka</th><th>Task (prodáno)</th><th>Fakturovaná částka</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+      <tfoot><tr><td colspan="4">Celkem</td><td class="num">${fmtK(total)}</td></tr></tfoot>
+    `;
+  })();
+
+  // ---------------------------------------------------------------
+  // TABLE — the 11 gaps: no "UPSALE" notification task at all
+  // ---------------------------------------------------------------
+  (function(){
+    const t = document.getElementById("gap-table");
+    const rowsHtml = gapRows.map(r => `
+      <tr>
+        <td class="mono">${r.date}</td>
+        <td class="order"><a href="${complaintUrl(r.complaintId)}" target="_blank" rel="noopener">${r.complaint}</a></td>
+        <td class="order"><a href="${orderUrl(r.orderId)}" target="_blank" rel="noopener">${r.order}</a></td>
+      </tr>`).join("");
+    t.innerHTML = `
+      <thead><tr><th>Datum reklamace</th><th>Reklamace</th><th>Objednávka</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    `;
+  })();
+
+  document.addEventListener("mousemove", (e)=>{
+    if (tip.classList.contains("show")) moveTip(e);
+  });
+})();
+</script>
