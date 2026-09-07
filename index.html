@@ -248,7 +248,7 @@
 
 <header>
   <h1>Brzdy — interní reklamace (CPC)</h1>
-  <span class="meta">10/2025 – 9/2026 · aktualizováno 6. 9. 2026</span>
+  <span class="meta">10/2025 – 9/2026 · aktualizováno 7. 9. 2026</span>
 </header>
 
 <main>
@@ -296,6 +296,7 @@
       <div class="stat upczk"><span class="label">Vybráno od zákazníků celkem</span><span class="value" id="stat-upczk"></span></div>
       <div class="stat diff"><span class="label">Rozdíl — zaplatilo Carvago</span><span class="value" id="stat-diff"></span></div>
     </div>
+    <div class="table-note">Náklad na opravu je u všech 38 upsale případů převzat přímo z pole Service_Job__c "Expected Price without VAT" (předpokládaná cena bez DPH) na servisním jobu — nikoli dopočítáván nebo odhadován z textu Tasku. Toto pole je zdroj pravdy pro předpokládaný náklad vždy, i tam, kde efektivní cena po prodeji upsale činí 0,- (hrazeno třetí stranou).</div>
   </div>
 
   <div class="panel">
@@ -334,7 +335,11 @@
   const months = ["2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"];
   const monthLabels = ["10/25","11/25","12/25","01/26","02/26","03/26","04/26","05/26","06/26","07/26","08/26","09/26"];
   const counts   = [10,7,2,9,5,11,3,10,7,15,11,2];
-  const costs    = [46400.02,47172.38,17720.12,62236.29,25808.19,47957.18,19266.24,50589.85,43816.77,90244.05,63993.08,8516.12];
+  // Aktualizováno 2026-09-07: náklad u upsale položek se nyní VŽDY bere z pole
+  // Service_Job__c.Expected_Price_without_VAT__c ("předpokládaná cena bez DPH") —
+  // tedy přímo ze Salesforce ze servisního jobu, nikdy dopočítáváno z textu Tasku.
+  // Z Tasku se nadále čerpá výhradně částka prodaného upsale fakturovaná zákazníkovi (viz upsaleCz/upsaleRows).
+  const costs    = [51693.0,47172.27,17720.01,63336.33,36456.04,56565.3,19266.24,50600.04,43816.81,98277.9,63993.14,8516.09];
   const upsaleN  = [7,2,1,1,3,5,0,3,1,9,5,1];
   // Upravené o -21 % DPH (viz poznámka výše) — původní hodnoty s DPH byly vyšší.
   const upsaleCz = [46869.09,10320.66,7319.83,2879.34,28289.98,35880.85,0.0,13554.55,2815.7,51886.79,32765.59,4793.39];
